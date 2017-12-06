@@ -1,0 +1,60 @@
+/* html { */
+/*   height: 100%; */
+/* } */
+
+/* body { */
+/*   height: 100%; */
+/* } */
+
+.container {
+  width: 100%;
+  height: 100%;
+}
+
+.controls {
+  width: 70%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+button:disabled,
+button[disabled] {
+  background: grey;
+}
+
+button {
+  background: #3498db;
+  -webkit-border-radius: 28;
+  -moz-border-radius: 28;
+  border-radius: 28px;
+  font-family: Arial;
+  color: #ffffff;
+  font-size: 20px;
+  padding: 10px 20px 10px 20px;
+  text-decoration: none;
+}
+
+button:hover {
+  background: #3cb0fd;
+  background-image: -webkit-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -moz-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -ms-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -o-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: linear-gradient(to bottom, #3cb0fd, #3498db);
+  text-decoration: none;
+}
+
+
+button:disabled:hover,
+button[disabled]:hover {
+  background: grey;
+}
+
+#canvas {
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  border: 1px solid grey;
+}
