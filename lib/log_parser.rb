@@ -16,7 +16,7 @@ class LogParser
   end
 
   def initialize
-    @log_array = [{ nodes: [], links: [], connected_clients: {}, messages: {} }]
+    @log_array = [{ nodes: [], links: [], connected_clients: {}, messages: {}, event: {} }]
   end
 
   def parse(filename)
@@ -75,6 +75,7 @@ class LogParser
     else
       # raise "Line not matched: #{line}"
     end
+    event_hash[:event] = { log_string: line }
     @log_array[index] = event_hash
   end
 

@@ -22,7 +22,7 @@ class NetworkVisualizer {
     this.context.textAlign = "center";
     this.context.font = "12px Arial";
     this.canvasCenterX = this.canvas.width/2;
-    this.canvasCenterY = this.canvas.height/2;
+    this.canvasCenterY = this.canvas.height/2 + 40;
 
     this.nodeRadius = 35;
     this.nodeRingRadius = Math.min(this.canvas.height, this.canvas.width) / 4;
@@ -73,11 +73,13 @@ class NetworkVisualizer {
   updateNetworkState(networkEvent) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    var event = networkEvent.event;
     var nodes = networkEvent.nodes;
     var links = networkEvent.links;
     var connectedClients = networkEvent.connected_clients;
     var messages = networkEvent.messages;
 
+    this.renderEvent(event);
     this.renderNodes(nodes);
     this.renderLinks(links);
     if (connectedClients) {
@@ -86,6 +88,15 @@ class NetworkVisualizer {
     if (messages) {
       this.renderMessages(messages)
     }
+  }
+
+  renderEvent(event) {
+    this.context.fillStyle = 'black';
+    this.context.font = '16px Arial';
+    this.context.textAlign = 'left';
+    this.context.fillText(event.log_string, 20, 20);
+    this.context.textAlign = 'center';
+    this.context.font = '12px Arial';
   }
 
   renderMessages(nodesWithMessages) {
