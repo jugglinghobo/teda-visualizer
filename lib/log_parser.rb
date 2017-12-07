@@ -4,8 +4,10 @@ class LogParser
   NODE_ONLINE = /^(<\d+\.\d+\.\d+>): online$/
   NODE_OFFLINE = /^(<\d+\.\d+\.\d+>): offline$/
   LINK_ADDED = /^(<\d+\.\d+\.\d+>): linked to (<\d+\.\d+\.\d+>)$/
-  CLIENT_CONNECTED = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+).*\((<\d+\.\d+\.\d+>)\)\sconnected$/
-  CLIENT_DISCONNECTED = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+).*\((<\d+\.\d+\.\d+>)\)\sdisconnected$/
+  CLIENT_CONNECTED = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\s\((<\d+\.\d+\.\d+>)\)\sconnected$/
+  CLIENT_DISCONNECTED = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\s\((<\d+\.\d+\.\d+>)\)\sdisconnected$/
+  CLIENT_AVAILABLE = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\savailable\svia\s(<\d+\.\d+\.\d+>)\swith\sdistance\s(\d+)$/
+  CLIENT_UNAVAILABLE = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\sunavailable$/
   ROUTE_MSG = /(<\d+\.\d+\.\d+>):\srouting\smessage\s(.*)\sfrom\s(.*)\sto\s(.*)\svia\s(<\d+\.\d+\.\d+>).*/
   DELIVER_MSG = /(<\d+\.\d+\.\d+>):\sdelivering\smessage\s(.*)\sfrom\s(.*)\sto\s(.*)/
 
@@ -16,7 +18,7 @@ class LogParser
   end
 
   def initialize
-    @log_array = [{ nodes: [], links: [], connected_clients: {}, messages: {}, event: {} }]
+    @log_array = [{ nodes: [], links: [], connected_clients: {}, available_clients: {}, messages: {}, event: {} }]
   end
 
   def parse(filename)
@@ -48,12 +50,23 @@ class LogParser
       if event_hash[:connected_clients][node]
         event_hash[:connected_clients][node].push({ username: username, pid: client_pid })
       else
-        new_client_hash = { node => [{username: username, pid: client_pid}] }
-        event_hash[:connected_clients].merge!(new_client_hash)
+        client_connected_hash = { node => [{username: username, pid: client_pid}] }
+        event_hash[:connected_clients].merge!(client_connected_hash)
       end
     when CLIENT_DISCONNECTED
       node, username, client_pid = line.match(CLIENT_DISCONNECTED).captures
       event_hash[:connected_clients][node].delete_if { |hash| hash[:username] == username }
+    when CLIENT_AVAILABLE
+      node, username, via, distance = line.match(CLIENT_AVAILABLE).captures
+      if event_hash[:available_clients][node]
+        event_hash[:available_clients][node].push({ username: username, via: via, distance: distance})
+      else
+        client_available_hash = { node => [{username: username, via: via, distance: distance}]}
+        event_hash[:available_clients].merge!(client_available_hash)
+      end
+    when CLIENT_UNAVAILABLE
+      node, username = line.match(CLIENT_UNAVAILABLE).captures
+      event_hash[:available_clients][node].delete_if {|hash| hash[:username] == username }
     when ROUTE_MSG
       node, message, from, to, via = line.match(ROUTE_MSG).captures
       message_info = {message: message, from: from, to: to, via: via}

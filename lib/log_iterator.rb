@@ -1,6 +1,6 @@
 require './lib/log_parser'
 class LogIterator
-  FILENAME = './out_network.hrl'
+  FILENAME = './log.hrl'
 
   @step = 0
 
