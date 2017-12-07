@@ -19,16 +19,16 @@ class NetworkVisualizer {
     this.canvas = document.getElementById('canvas');
     this.context = canvas.getContext('2d');
     this.context.lineJoin = "round";
-    this.context.textAlign = "center";
     this.context.font = "12px Arial";
+    this.context.lineWidth = 2;
     this.canvasCenterX = this.canvas.width/2;
     this.canvasCenterY = this.canvas.height/2 + 40;
 
     this.nodeRadius = 35;
+    this.nodeSize = 100;
     this.nodeRingRadius = Math.min(this.canvas.height, this.canvas.width) / 4;
     this.clientSize = 30;
-    // this.clientRingRadius = Math.min(this.canvas.height, this.canvas.width) / 3;
-    this.clientRingRadius = Math.min(this.canvas.height,this.canvas.width) / 6;
+    this.clientRingRadius = Math.min(this.canvas.height,this.canvas.width) / 4;
     this.messageWidth = 150;
     this.messageHeight = 70;
     this.messageSpacing = 12;
@@ -73,41 +73,60 @@ class NetworkVisualizer {
   updateNetworkState(networkEvent) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    var event = networkEvent.event;
-    var nodes = networkEvent.nodes;
-    var links = networkEvent.links;
-    var connectedClients = networkEvent.connected_clients;
-    var messages = networkEvent.messages;
+    let event = networkEvent.event;
+    let nodes = networkEvent.nodes;
+    let links = networkEvent.links;
+    let connectedClients = networkEvent.connected_clients;
+    let available_clients = networkEvent.available_clients;
+    let messages = networkEvent.messages;
 
     this.renderEvent(event);
     this.renderNodes(nodes);
     this.renderLinks(links);
-    if (connectedClients) {
-      this.renderConnectedClients(connectedClients);
+    this.renderConnectedClients(connectedClients);
+    this.renderAvailableClients(available_clients)
+    this.renderMessages(messages)
+  }
+
+  renderAvailableClients(nodesWithClients) {
+    for (var connectedNode of Object.keys(nodesWithClients)) {
+      var node = this.objectMap[connectedNode];
+      var clients = nodesWithClients[connectedNode];
+      this.drawAvailableClients(node, clients);
     }
-    if (messages) {
-      this.renderMessages(messages)
+  }
+
+  drawAvailableClients(nodeInfo, clients) {
+    let i = 3
+    for (var availableClient of clients) {
+      let clientName = availableClient.username;
+      let closestNode = availableClient.via;
+      let distance = availableClient.distance;
+
+
+      this.context.fillText(""+clientName+": {"+closestNode+", "+distance+"}", nodeInfo.x, (nodeInfo.y + (i * 12)));
+      i += 1
     }
   }
 
   renderEvent(event) {
     this.context.fillStyle = 'black';
     this.context.font = '16px Arial';
-    this.context.textAlign = 'left';
     this.context.fillText(event.log_string, 20, 20);
-    this.context.textAlign = 'center';
     this.context.font = '12px Arial';
   }
 
   renderMessages(nodesWithMessages) {
+    console.log("render messages:");
+    console.log(nodesWithMessages);
     for (var node of Object.keys(nodesWithMessages)) {
       var messages = nodesWithMessages[node];
       node = this.objectMap[node];
 
       var i = 0;
       for (var message of messages) {
-        var messageX = node.X + 90 + i;
-        var messageY = node.Y - 50 - i;
+        var messageX = node.x + 70 + i;
+        var messageY = node.y + 70 - i;
         i += 10;
         this.drawMessage(message, messageX, messageY);
       }
@@ -115,18 +134,17 @@ class NetworkVisualizer {
   }
 
   drawMessage(messageInfo, X, Y) {
-    console.log("messagePos: ("+X+", "+Y+")");
     this.context.beginPath();
-    this.context.rect(X - (this.messageWidth/2), Y - (this.messageHeight/2), this.messageWidth, this.messageHeight)
+    this.context.rect(X, Y, this.messageWidth, this.messageHeight)
     this.context.fillStyle = "rgb(255, 255, 153)";
     this.context.fill();
     this.context.stroke();
 
     this.context.beginPath();
     this.context.fillStyle = 'black';
-    this.context.fillText("from: "+messageInfo.from, X, Y-(this.messageHeight/2)+(this.messageSpacing*2));
-    this.context.fillText("to: "+messageInfo.to, X, Y-(this.messageHeight/2)+(this.messageSpacing*3));
-    this.context.fillText(messageInfo.message, X, Y-(this.messageHeight/2)+(this.messageSpacing*4));
+    this.context.fillText("from: "+messageInfo.from, X, Y+(this.messageSpacing));
+    this.context.fillText("to: "+messageInfo.to, X, Y+(this.messageSpacing*2));
+    this.context.fillText(messageInfo.message, X, Y+(this.messageSpacing*3));
   }
 
   renderConnectedClients(nodesWithClients) {
@@ -137,21 +155,26 @@ class NetworkVisualizer {
     }
   }
 
-  drawConnectedClients(node, clients) {
-    this.context.fillStyle = 'lightgrey';
+  drawConnectedClients(nodeInfo, clients) {
     this.context.strokeStyle = 'black';
     var i = 1;
     var step = (2/(clients.length+1));
     for (var clientInfo of clients) {
-      var angle = (node.Angle - 1) + i*step;
+      var angle = (nodeInfo.angle - 1) + i*step;
       i += 1;
-      var clientX = Math.cos(angle) * this.clientRingRadius + node.X;
-      var clientY = Math.sin(angle) * this.clientRingRadius + node.Y;
-      this.objectMap[clientInfo.pid] = {X: clientX, Y: clientY, Angle: angle}
+      var clientX = Math.cos(angle) * this.clientRingRadius + nodeInfo.x;
+      var clientY = Math.sin(angle) * this.clientRingRadius + nodeInfo.y;
+      this.objectMap[clientInfo.pid] = {
+        name: clientInfo.username,
+        x: clientX,
+        y: clientY,
+        cx: clientX + (this.nodeSize/2),
+        cy: clientY + (this.nodeSize/2),
+        angle: angle
+      };
+      this.drawNode(this.objectMap[clientInfo.pid], 'grey');
 
-      this.drawNode(clientInfo.username, clientX, clientY, 'grey');
-
-      this.drawLink(node, this.objectMap[clientInfo.pid]);
+      this.drawLink(nodeInfo, this.objectMap[clientInfo.pid]);
     }
   }
 
@@ -178,43 +201,44 @@ class NetworkVisualizer {
         var angle = i * ((Math.PI * 2) / this.numberOfNodes);
         var nodeX = Math.cos(angle) * radius + this.canvasCenterX;
         var nodeY = Math.sin(angle) * radius + this.canvasCenterY;
-        this.objectMap[node] = {X: nodeX, Y: nodeY, Angle: angle};
+        this.objectMap[node] = {
+          name: node,
+          x: nodeX,
+          y: nodeY,
+          cx: nodeX + (this.nodeSize/2),
+          cy: nodeY + (this.nodeSize/2),
+          angle: angle
+        };
       }
       i = i + 1;
-      this.drawNode(node, nodeX, nodeY, 'white');
+      this.drawNode(this.objectMap[node], 'white');
     }
   }
 
-  drawNode(label, X, Y, color) {
+  drawNode(nodeInfo, color) {
     this.context.beginPath();
-    this.context.arc(X, Y, this.nodeRadius, 0, 2*Math.PI, false);
+    this.context.rect(nodeInfo.x, nodeInfo.y, this.nodeSize, this.nodeSize);
     this.context.fillStyle = color;
     this.context.fill();
-    this.context.lineWidth = 3;
     this.context.strokeStyle = '#003300';
     this.context.stroke();
 
     this.context.beginPath();
     this.context.fillStyle = 'black';
-    this.context.fillText(label, X, Y);
+    this.context.fillText(nodeInfo.name, nodeInfo.x, (nodeInfo.y + 12));
   }
 
   drawLink(startNode, endNode) {
-    console.log("from: ("+startNode.X+", "+startNode.Y+")");
-    console.log("to: ("+endNode.X+", "+endNode.Y+")");
-    let distX = endNode.X - startNode.X;
-    let distY = endNode.Y - startNode.Y;
-    let radAngle = Math.atan2(distY, distX);
-    let degAngle = radAngle * 180 / Math.PI
-    console.log("distX: "+distX+", distY: "+distY+", degAngle: "+degAngle);
-    let startBorderX = startNode.X + (this.nodeRadius * Math.cos(radAngle))
-    let startBorderY = startNode.Y + (this.nodeRadius * Math.sin(radAngle))
-    let endBorderX = endNode.X - (this.nodeRadius * Math.cos(radAngle))
-    let endBorderY = endNode.Y - (this.nodeRadius * Math.sin(radAngle))
+    let distX = endNode.cx - startNode.cx;
+    let distY = (endNode.cy - startNode.cy);
+    let startX = startNode.cx + Math.sign(distX)*(this.nodeSize/2);
+    let startY = startNode.cy + Math.sign(distY)*(this.nodeSize/2);
+    let endX = endNode.cx - Math.sign(distX)*(this.nodeSize/2);
+    let endY = endNode.cy - Math.sign(distY)*(this.nodeSize/2);
 
     this.context.beginPath();
-    this.context.moveTo(startBorderX, startBorderY);
-    this.context.lineTo(endBorderX, endBorderY);
+    this.context.moveTo(startX, startY);
+    this.context.lineTo(endX, endY);
     this.context.stroke();
   }
 }
