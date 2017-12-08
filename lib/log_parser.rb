@@ -8,6 +8,7 @@ class LogParser
   CLIENT_DISCONNECTED = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\s\((<\d+\.\d+\.\d+>)\)\sdisconnected$/
   CLIENT_AVAILABLE = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\savailable\svia\s(<\d+\.\d+\.\d+>)\swith\sdistance\s(\d+)$/
   CLIENT_UNAVAILABLE = /^(<\d+\.\d+\.\d+>):\sclient\s(\S+)\sunavailable$/
+  SEND_MSG = /(<\d+\.\d+\.\d+>):\ssending\smessage\s(.*)\sfrom\s(.*)\sto\s(.*)/
   ROUTE_MSG = /(<\d+\.\d+\.\d+>):\srouting\smessage\s(.*)\sfrom\s(.*)\sto\s(.*)\svia\s(<\d+\.\d+\.\d+>).*/
   DELIVER_MSG = /(<\d+\.\d+\.\d+>):\sdelivering\smessage\s(.*)\sfrom\s(.*)\sto\s(.*)/
 
@@ -67,6 +68,15 @@ class LogParser
     when CLIENT_UNAVAILABLE
       node, username = line.match(CLIENT_UNAVAILABLE).captures
       event_hash[:available_clients][node].delete_if {|hash| hash[:username] == username }
+    when SEND_MSG
+      node, message, from, to = line.match(SEND_MSG).captures
+      message_info = {message: message, from: from, to: to}
+      if event_hash[:messages][node]
+        event_hash[:messages][node].push(message_info)
+      else
+        new_message_hash = { node => [message_info] }
+        event_hash[:messages].merge!(new_message_hash)
+      end
     when ROUTE_MSG
       node, message, from, to, via = line.match(ROUTE_MSG).captures
       message_info = {message: message, from: from, to: to, via: via}
